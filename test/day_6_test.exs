@@ -10,8 +10,7 @@ defmodule Day6Test do
       Enum.zip(@times, @distances)
       |> Enum.map(fn {n, c} ->
         lb = ceil((n - :math.sqrt(n * n - 4 * c)) / 2.0)
-        ub = floor((n + :math.sqrt(n * n - 4 * c)) / 2.0)
-        ub - lb + 1
+        n - 2 * lb + 1
       end)
       |> Enum.reduce(1, fn m, p -> m * p end)
 

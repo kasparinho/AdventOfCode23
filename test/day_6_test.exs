@@ -9,10 +9,7 @@ defmodule Day6Test do
     possibilities =
       Enum.zip(@times, @distances)
       |> Enum.map(fn {n, c} ->
-        lb =
-          ((n - :math.sqrt(n * n - 4 * c)) / 2.0)
-          |> then(fn x -> if x == ceil(x), do: ceil(x) + 1, else: ceil(x) end)
-
+        lb = floor((n - :math.sqrt(n * n - 4 * c)) / 2.0) + 1
         n - 2 * lb + 1
       end)
       |> Enum.reduce(1, fn m, p -> m * p end)

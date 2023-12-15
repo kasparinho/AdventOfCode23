@@ -99,7 +99,7 @@ defmodule Day14Test do
     |> Stream.transform(_last_occ = -1, fn
       {{_x, _y}, "."}, last_occ -> {[], last_occ}
       {{_x, _y}, "O"}, last_occ -> {[n - (last_occ + 1)], last_occ + 1}
-      {{_x, y}, "#"}, last_occ -> {[], y}
+      {{_x, y}, "#"}, _last_occ -> {[], y}
     end)
     |> Enum.to_list()
     |> Enum.sum()

@@ -1,24 +1,109 @@
 defmodule Day10Test do
   use ExUnit.Case
 
-  @tag :day10part1
-  test "day 10, part 1" do
+  @tag :day10
+  test "day 10" do
+    # part 1
     board_map =
       File.read!("data_input/input10.txt")
       |> board_map()
 
     pipe_list = pipe_list(board_map)
-    # |> IO.inspect(limit: :infinity)
 
     n = length(pipe_list)
-    d = (n + 1) / 2
+    d = n / 2
 
     assert d == 7093
 
-    # {62, 64, :up, 14186},
-    # {62, 65, :up, 14185},
-    # {62, 66, :left, 14184},
-    # {63, 66, :down, 14183},
+    # part 2
+    assert count_inside(pipe_list) == 407
+  end
+
+  defp count_inside(pipe_list) do
+    pipe_list
+    |> Enum.reverse()
+    |> then(fn list -> list ++ [hd(list)] end)
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [{x, y, dir, _}, {_, _, next_dir, _}] -> {dir, x, y, next_dir} end)
+    |> Enum.group_by(fn {_dir, _x, y, _next_dir} -> y end)
+    |> Enum.map(fn {_y, tiles} ->
+      tiles
+      |> Enum.sort_by(fn {_dir, x, _y, _next_dir} -> x end)
+      |> Enum.filter(fn {dir, _x, _y, next_dir} ->
+        dir in [:up, :down] or next_dir in [:up, :down]
+      end)
+      |> Enum.reduce({_count = 0, _in_out = :out, _last_dir = :irr}, fn
+        {:down, x, _y, :down}, {acc_count, :out, :irr} ->
+          {acc_count - x, :in, :irr}
+
+        {:down, x, _y, :down}, {acc_count, :in, :irr} ->
+          {acc_count + (x - 1), :out, :irr}
+
+        {:up, x, _y, :up}, {acc_count, :out, :irr} ->
+          {acc_count - x, :in, :irr}
+
+        {:up, x, _y, :up}, {acc_count, :in, :irr} ->
+          {acc_count + (x - 1), :out, :irr}
+
+        # up_down -> right
+
+        {up_down, _x, _y, :right}, {acc_count, :out, :irr}
+        when up_down in [:up, :down] ->
+          {acc_count, :out_b, up_down}
+
+        {up_down, x, _y, :right}, {acc_count, :in, :irr}
+        when up_down in [:up, :down] ->
+          {acc_count + (x - 1), :in_b, up_down}
+
+        # right -> up_down
+
+        {:right, x, _y, up_down}, {acc_count, :out_b, up_down}
+        when up_down in [:up, :down] ->
+          {acc_count - x, :in, :irr}
+
+        {:right, _x, _y, up_down}, {acc_count, :out_b, up_down_acc}
+        when up_down_acc in [:up, :down] and up_down in [:up, :down] ->
+          {acc_count, :out, :irr}
+
+        {:right, _x, _y, up_down}, {acc_count, :in_b, up_down}
+        when up_down in [:up, :down] ->
+          {acc_count, :out, :irr}
+
+        {:right, x, _y, up_down}, {acc_count, :in_b, up_down_acc}
+        when up_down_acc in [:up, :down] and up_down in [:up, :down] ->
+          {acc_count - x, :in, :irr}
+
+        # up_down <- left
+
+        {:left, x, _y, up_down}, {acc_count, :in, :irr}
+        when up_down in [:up, :down] ->
+          {acc_count + (x - 1), :in_b, up_down}
+
+        {:left, _x, _y, up_down}, {acc_count, :out, :irr}
+        when up_down in [:up, :down] ->
+          {acc_count, :out_b, up_down}
+
+        # left <- up_down
+
+        {up_down, _x, _y, :left}, {acc_count, :in_b, up_down}
+        when up_down in [:up, :down] ->
+          {acc_count, :out, :irr}
+
+        {up_down, x, _y, :left}, {acc_count, :in_b, up_down_acc}
+        when up_down in [:up, :down] and up_down_acc in [:up, :down] ->
+          {acc_count - x, :in, :irr}
+
+        {up_down, x, _y, :left}, {acc_count, :out_b, up_down}
+        when up_down in [:up, :down] ->
+          {acc_count - x, :in, :irr}
+
+        {up_down, _x, _y, :left}, {acc_count, :out_b, up_down_acc}
+        when up_down in [:up, :down] and up_down_acc in [:up, :down] ->
+          {acc_count, :out, :irr}
+      end)
+      |> then(fn {count, :out, :irr} -> count end)
+    end)
+    |> Enum.sum()
   end
 
   defp pipe_list(board_map) do
@@ -44,7 +129,7 @@ defmodule Day10Test do
     tile = Map.fetch!(board_map, {x, y})
 
     if tile == "S" do
-      pipe_list
+      [{x, y, dir, n} | pipe_list]
     else
       next = next_tile({x, y, dir}, tile)
       pipe_list_recursive(board_map, next, [{x, y, dir, n} | pipe_list], n + 1)
